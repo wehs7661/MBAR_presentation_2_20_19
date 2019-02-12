@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!python
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,8 +22,8 @@ def roll_loaded_dice(n,*args):
 #Main
 
 
-if __name__ == "__main__":
-# if True:
+# if __name__ == "__main__":
+if True:
    plot = True
 
    # Samples for a fair dice
@@ -54,7 +54,7 @@ if __name__ == "__main__":
    #exit()
    u_kln = np.array([u_fair, u_unfair])
 
-   print(u_kln)
+   # print(u_kln)
    
    # Samples for a loaded dice 
    if True:
@@ -78,14 +78,15 @@ if __name__ == "__main__":
    # state 1 [16, 18, 10, 34, 23, ...]
    # state 2 [18, 26, ...]
    # ])
-   print(N_samples)
    sums = list(map(sum, samples))
    sums_loaded = list(map(sum, samples_loaded))
 
    if True:
       N_k = np.array([N_samples, 0])
       results = pymbar.mbar.MBAR(u_kln, N_k)
+      print('Free Energy Differences : ')
       print(results.getFreeEnergyDifferences()[0])
+      print('Weights : ')
       print(results.getWeights())
       print('Average fair dice = '+str(np.mean(sums)))
       print('Average loaded dice = '+str(np.mean(sums_loaded)))
@@ -103,11 +104,14 @@ if __name__ == "__main__":
       # KDE of data
 
       density = sps.gaussian_kde(list(map(sum, samples)))
+      density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[:, 1])
       density_loaded = sps.gaussian_kde(list(map(sum, samples_loaded)))
+
 
       x_range = np.linspace(1*n_dice, 6*n_dice, 200)
       plt.plot(x_range, density(x_range))
       plt.plot(x_range, density_loaded(x_range))
+      plt.plot(x_range, density_MBAR(x_range))
       plt.show()
 
 

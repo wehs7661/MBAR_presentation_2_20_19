@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
    # Plotting
 
-   if plot == False:
+   if plot == True:
       plt.hist(samples)
       plt.hist(samples_loaded)
       plt.show()
