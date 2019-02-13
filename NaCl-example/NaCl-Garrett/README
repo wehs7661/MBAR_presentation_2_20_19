@@ -1,0 +1,4 @@
+In order to get this script to work I had to troubleshoot a couple of problems in OpenMM.
+
+More specifically, I had to comment out line 692 of /home/gmeek/software/anaconda3/lib/python3.6/site-packages/simtk/openmm/app/gromacstopfile.py:
+"has_nbfix_terms = any([pair in self._nonbondTypes for pair in combinations_with_replacement(sorted(set(atom_types)), 2)])"
