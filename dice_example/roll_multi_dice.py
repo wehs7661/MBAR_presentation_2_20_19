@@ -97,14 +97,17 @@ if True:
 
    if plot == True:
       # Histograms
-      plt.hist(list(map(sum, samples)), alpha=0.5, bins=range(1,6*n_dice))
-      plt.hist(list(map(sum, samples_loaded)), alpha=0.5, bins=range(1,6*n_dice))
+      plt.hist(list(map(sum, samples)), alpha=0.5, bins=range(1,6*n_dice+1))
+      plt.xlabel('Roll Energy')
+      plt.ylabel('Frequency')
+      plt.legend(['Fair Dice'])
+      # plt.hist(list(map(sum, samples_loaded)), alpha=0.5, bins=range(1,6*n_dice))
       plt.show()
 
       # KDE of data
 
       density = sps.gaussian_kde(list(map(sum, samples)))
-      density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[:, 1])
+      density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[ :, 1])
       density_loaded = sps.gaussian_kde(list(map(sum, samples_loaded)))
 
 
