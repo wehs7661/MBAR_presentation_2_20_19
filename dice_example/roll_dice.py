@@ -12,7 +12,7 @@ def roll_dice(n):
 
 def roll_loaded_dice(n,*args):
    if len(args) % 2 != 0:          # Function can take in multiple changes to the probability of dice rolls
-      arg.apend(1)                 # Input of roll_loaded_dice(n, number, odds) --> Where roll_loaded_dice(10, 4,1) should give the distribution of a fair dice
+      args.apend(1)                 # Input of roll_loaded_dice(n, number, odds) --> Where roll_loaded_dice(10, 4,1) should give the distribution of a fair dice
    choices = list(range(1,7))
    for i in range(int(len(args)/2)):
       choices.extend([args[2*i]]*(args[2*i+1]-1))           # Interesting (bad) logic to append number (odds - 1) times to the fair dice distribution
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 
    fair = {1:-1, 2:-1, 3:-1, 4:-1, 5:-1, 6:-1}
-   unfair = {1:-1, 2:-1, 3:-1, 4:-1, 5:-1, 6:-3.3025}
+   unfair = {1:-1, 2:-1, 3:-1, 4:-1, 5:-1, 6:-3.3025} # -1 + ln(10) - ln(1)
 
    u_fair = [fair[x] for x in samples]
    u_unfair = [unfair[x] for x in samples]
@@ -84,11 +84,48 @@ if __name__ == "__main__":
       print('Average fair dice = '+str(np.mean(samples)))
       print('Average loaded dice = '+str(np.mean(samples_loaded)))
       print('MBAR Average loaded dice = '+str(results.computeExpectations(samples)[0][1]))
+      print('MBAR Partition Function :')
+      print(np.exp(-1*results.getFreeEnergyDifferences()[0]))
    
 
    # Plotting
 
    if plot == True:
-      plt.hist(samples)
-      plt.hist(samples_loaded)
+      plt.figure(figsize=[10,10])
+      plt.hist(samples, density = True, bins=range(0,8), align='left', rwidth=0.9  )
+      plt.xlabel('Dice Roll', fontsize=20)
+      plt.ylabel('Density', fontsize=20)
+      plt.xlim([0.5,6.5])
+      # plt.hist(samples_loaded, bins=range(1,7))
+      plt.gca()
+      plt.savefig('outputs/1_fair_dice.png')
       plt.show()
+      
+      #plt.figure(figsize=[10,10])
+      a = plt.hist(samples, density = True, bins=range(0,8), align='left', rwidth=0., alpha = 0.4)
+      a_bins = np.array([(a[1][i] + a[1][i+1])/2 for i in range(len(a[1])-1)])
+      b = plt.hist(samples, bins=range(0,8), density=True, weights=results.getWeights()[:,1], rwidth = 0.9, align='left', alpha=0.4)
+      b_bins = np.array([(b[1][i] + b[1][i+1])/2 for i in range(len(b[1])-1)])
+      c = plt.hist(samples_loaded, density = True, bins=range(0,8), align='left', rwidth=0.9, alpha = 0.4)
+      c_bins = np.array([(c[1][i] + c[1][i+1])/2 for i in range(len(c[1])-1)])
+      plt.show()
+
+
+      print(a[0])
+      print(a_bins)
+      plt.figure(figsize=[10,10])
+      plt.bar(a_bins-0.8, a[0], width=0.3, align='center')  # Needed to shift all bins over by -0.5, messy, but gives the plot I wanted
+      plt.bar(b_bins-0.5, b[0], width=0.3, align='center')
+      plt.bar(c_bins-0.2, c[0], width=0.3, align='center')
+      plt.xlim([0.5,6.5])
+      plt.legend(['Fair Dice', 'MBAR Weighted Dice', 'Weighted Dice'])
+      plt.xlabel('Dice Roll', fontsize=20)
+      plt.ylabel('Density', fontsize=20)
+      plt.gca()
+      plt.savefig('outputs/1_weighted_dice.png')
+      plt.show()
+
+
+
+      # plt.hist(results.getWeights()[:,1])
+      # plt.show()
