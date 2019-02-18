@@ -22,8 +22,7 @@ def roll_loaded_dice(n,*args):
 #Main
 
 
-# if __name__ == "__main__":
-if True:
+if __name__ == "__main__":
    plot = True
 
    # Samples for a fair dice
@@ -44,7 +43,9 @@ if True:
 
 
    fair = {1:-1, 2:-1, 3:-1, 4:-1, 5:-1, 6:-1}
-   unfair = {1:-2.0986, 2:-1, 3:-1, 4:-1, 5: -1, 6:-1}
+   unfair = {1:-1, 2:-1, 3:-1, 4: -1, 5: -1, 6: -2.0986}
+
+   #unfair = {1:-2.0986, 2:-1, 3:-1, 4:-1, 5: -1, 6:-1}
 
    u_fair = [sum(list(map(lambda y: fair[y], x))) for x in samples]
    u_unfair = [sum(list(map(lambda y: unfair[y], x))) for x in samples]
@@ -64,7 +65,7 @@ if True:
       samples_loaded =list()
 
       for i in range(N_samples):
-         roll = roll_loaded_dice(n_dice,1,3)
+         roll = roll_loaded_dice(n_dice,6,3)
          samples_loaded.append(roll)
          #if roll not in bins_loaded.keys():
          #   bins_loaded[roll] = 1
@@ -97,28 +98,47 @@ if True:
 
    if plot == True:
       # Histograms
-      plt.hist(list(map(sum, samples)), alpha=0.5, bins=range(1,6*n_dice+1))
-      plt.xlabel('Roll Energy')
-      plt.ylabel('Frequency')
+      plt.figure(figsize=[10,10])
+      plt.hist(list(map(sum, samples)), bins=range(1,6*n_dice+1))
+      plt.xlim(n_dice, n_dice*6)
+      plt.xlabel('Roll Value', fontsize=20)
+      plt.ylabel('Frequency', fontsize=20)
       plt.legend(['Fair Dice'])
-      # plt.hist(list(map(sum, samples_loaded)), alpha=0.5, bins=range(1,6*n_dice))
+
+      plt.gca()
+      plt.savefig('outputs/10_fair_dice.png')
       plt.show()
 
       # KDE of data
 
-      density = sps.gaussian_kde(list(map(sum, samples)))
-      density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[ :, 1])
-      density_loaded = sps.gaussian_kde(list(map(sum, samples_loaded)))
+      bw = 0.1
+      density = sps.gaussian_kde(list(map(sum, samples)), bw_method=bw)
+      density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[ :, 1],bw_method=bw)
+      density_loaded = sps.gaussian_kde(list(map(sum, samples_loaded)), bw_method=bw)
 
 
       x_range = np.linspace(1*n_dice, 6*n_dice, 200)
+
+      plt.figure(figsize=[10,10])
       plt.plot(x_range, density(x_range))
       plt.plot(x_range, density_loaded(x_range))
       plt.plot(x_range, density_MBAR(x_range))
+      #plt.hist(list(map(sum, samples)), bins=range(1,6*n_dice+1), alpha = 0.4, density=True)
+      #plt.hist(list(map(sum, samples_loaded)), bins=range(1,6*n_dice+1), alpha = 0.4, density=True, color='k')
+      #plt.hist(list(map(sum, samples)), weights=results.getWeights()[:,1], bins=range(1,6*n_dice+1), alpha=0.4, density=True)
+      plt.legend(['Fair Dice', 'Loaded Dice', 'MBAR Weighted Dice'])
+      plt.xlim([10,60])
+      plt.xlabel('Dice Value', fontsize=20)
+      plt.ylabel('Density', fontsize=20)
+      plt.gca()
+      plt.savefig('outputs/10_weighted_dice.png')
       plt.show()
 
-
       # Scatter of weights
-
+      plt.figure(figsize=[10,10])
       plt.scatter(sums, results.getWeights()[:,1])
+      plt.xlabel('Dice Value', fontsize=20)
+      plt.ylabel('Weight Value', fontsize=20)
+      plt.gca()
+      plt.savefig('outputs/10_weighted_dice_weights.png')
       plt.show()
