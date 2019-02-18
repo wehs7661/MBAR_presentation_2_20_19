@@ -82,8 +82,11 @@ if __name__ == "__main__":
       print(results.getFreeEnergyDifferences()[0])
       print(results.getWeights())
       print('Average fair dice = '+str(np.mean(samples)))
+      print('Variance fair dice = '+str(np.std(samples)))
       print('Average loaded dice = '+str(np.mean(samples_loaded)))
+      print('Variance loaded dice = '+str(np.std(samples_loaded)))
       print('MBAR Average loaded dice = '+str(results.computeExpectations(samples)[0][1]))
+      print('MBAR Variance loaded dice = '+str(np.sum(results.getWeights()[:,1]*np.power(samples,2)) - np.power(results.computeExpectations(samples)[0][1],2)))
       print('MBAR Partition Function :')
       print(np.exp(-1*results.getFreeEnergyDifferences()[0]))
    
@@ -111,14 +114,14 @@ if __name__ == "__main__":
       plt.show()
 
 
-      print(a[0])
-      print(a_bins)
+      #print(a[0])
+      #print(a_bins)
       plt.figure(figsize=[10,10])
       plt.bar(a_bins-0.8, a[0], width=0.3, align='center')  # Needed to shift all bins over by -0.5, messy, but gives the plot I wanted
-      plt.bar(b_bins-0.5, b[0], width=0.3, align='center')
-      plt.bar(c_bins-0.2, c[0], width=0.3, align='center')
+      plt.bar(c_bins-0.5, c[0], width=0.3, align='center')
+      plt.bar(b_bins-0.2, b[0], width=0.3, align='center')
       plt.xlim([0.5,6.5])
-      plt.legend(['Fair Dice', 'MBAR Weighted Dice', 'Weighted Dice'])
+      plt.legend(['Fair Dice', 'Weighted Dice', 'MBAR Weighted Dice' ])
       plt.xlabel('Dice Roll', fontsize=20)
       plt.ylabel('Density', fontsize=20)
       plt.gca()
@@ -127,5 +130,5 @@ if __name__ == "__main__":
 
 
 
-      # plt.hist(results.getWeights()[:,1])
-      # plt.show()
+      plt.scatter(samples,results.getWeights()[:,1])
+      plt.show()
