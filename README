@@ -2,3 +2,15 @@ This repository contains files related to the MBAR presentation by Wei-Tse, Lenn
 for the Shirts research group on 2/20/2019.
 
 Presentation link: https://docs.google.com/presentation/d/1Eo-lBL8GXohwjxiBbAwhyeOk54ELtVSAANj4EuUsLAY/edit?usp=sharing
+
+The Python scripts in this repo require the following external packages:
+
+1) openMM
+2) openmmtools
+3) pymbar
+
+They have been successfully tested using Python 2.7.
+
+To run all of the examples in this presentation, simply type the following at the command line:
+
+python run.py
