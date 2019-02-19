@@ -111,13 +111,13 @@ if True:
    pure_states = np.array([u_fair_state_1,u_fair_state_2,u_unfair_state_1,u_unfair_state_2])
 #GAM Next we randomly swap half of the samples between corresponding states in each distribution:
    for i in range(0,max_num_samples_per_state/2):
-    swap = random.randint(0,max_num_samples_per_state)
+    swap = random.randint(0,max_num_samples_per_state-1)
 #    print(swap)
 #    print(len(u_fair_state_1))
     temp = u_fair_state_1[swap]
     u_fair_state_1[swap] = u_unfair_state_1[swap]
     u_unfair_state_1[swap] = temp
-    swap = random.randint(0,max_num_samples_per_state)
+    swap = random.randint(0,max_num_samples_per_state-1)
 #    print(swap)
 #    print(len(u_fair_state_2))
     temp = u_fair_state_2[swap]
@@ -130,11 +130,11 @@ if True:
 #GAM Next we use the pure states that we stored earlier, and randomly swap samples between
 # NON-corresponding states from the fair and unfair distributions:
    for i in range(0,max_num_samples_per_state/2):
-    swap = random.randint(0,max_num_samples_per_state)
+    swap = random.randint(0,max_num_samples_per_state-1)
     temp = pure_states[0][swap]
     pure_states[0][swap] = pure_states[3][swap]
     pure_states[3][swap] = temp
-    swap = random.randint(0,max_num_samples_per_state)
+    swap = random.randint(0,max_num_samples_per_state-1)
     temp = pure_states[1][swap]
     pure_states[1][swap] = pure_states[2][swap]
     pure_states[2][swap] = temp
