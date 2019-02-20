@@ -162,7 +162,7 @@ for num_states in state_range:
  pyplot.plot(x_data,y_data,figure = figure)
  pyplot.xlabel("Temperature (Kelvin)")
  pyplot.ylabel("Counts")
- pyplot.savefig(str(cwd+str("distribution_for_")+str(num_states)+str("_states.dat")))
+ pyplot.savefig(str(str(cwd())+str("/distribution_for_")+str(num_states)+str("_states.png")))
  figure_index = figure_index + 1
  for state in range(0,num_states):
   distributions_for_each_num_states[num_states_index][state] = state_counts[state]
@@ -205,5 +205,7 @@ for num_states in state_range:
 #############
 
  num_states_index = num_states_index + 1
+
+
 
 exit() 
