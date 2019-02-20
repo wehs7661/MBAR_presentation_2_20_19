@@ -6,12 +6,8 @@
 # 1) Provide user input
 # 2) Prepare and run OpenMM simulation(s)
 # 3) Sub-sample simulation data to identify uncorrelated samples
-# 4) Optimize 'weights' for each thermodynamic state using MBAR
-# 5) Calculate free energy surface with MBAR using Langevin dynamics simulation data
-# 6) Calculate PMF with MBAR using Langevin dynamics simulation data
-# 7) Calculate PMF with MBAR after umbrella sampling of Langevin dynamics simulation data
-# 8) Calculate PMF with WHAM after umbrella sampling of Langevin dynamics simulation data
-
+# 4) Calculate 'weights' for each thermodynamic state with MBAR
+# 5) Calculate dimensionless free energies with MBAR
 
 from simtk.openmm.app import *
 from simtk.openmm import *
@@ -34,7 +30,7 @@ from pymbar import MBAR, timeseries
 simulation_time_step = 0.002 # Units = picoseconds
 simulation_temperature = 300 # Units = Kelvin
 kB = 0.008314462  #Boltzmann constant (Gas constant) in kJ/(mol*K)
-state_range = range(2,20)
+state_range = [num_states*5 for num_states in range(1,21)]
 output_file_name = 'output.dat'
 if cwd().split('/')[-1] == 'NaCl':
  output_dir = 'output/'
@@ -43,7 +39,6 @@ if cwd().split('/')[-1] == 'MBAR_presentation_2_20_19':
 if not(output_file_name) :
  print("Please provide a valid output file location")
  exit()
-num_simulations = 1
 simulation_steps = 100000
 print_frequency = 1 # Number of steps to skip when printing output
 nskip = 10 # Number of steps to skip when reading timeseries data to find the equilibration time
@@ -65,11 +60,8 @@ if not(simulation_data_exists):
  simulation = Simulation(system.topology, system.system, integrator) # Define a simulation 'context'
  simulation.reporters.append(StateDataReporter(str(output_dir+output_file_name), print_frequency, \
  step=True, totalEnergy=True, potentialEnergy=True, kineticEnergy=True, temperature=True))
-# If we are running more than one simulation, we randomize the initial coordinates for 'Cl':
-#if num_simulations == 1:
  simulation.context.setPositions(system.positions) # Assign particle positions for this context
 #else:
-# simulation.context.setPositions([[0.,0.,0.],[]]
  simulation.minimizeEnergy() # Set the simulation type to energy minimization
  print("Performing openMM simulation for "+str(simulation_steps)+" steps.")
  simulation.step(simulation_steps) # Run the simulation
@@ -116,7 +108,7 @@ U_reduced = np.array([U_uncorrelated[index]/(T_uncorrelated[index]*kB) for index
 
 #############
 #
-# 4) Optimize 'weights' for each thermodynamic state using MBAR
+# 4) Calculate 'weights' for each thermodynamic state with MBAR
 #
 #############
 
@@ -128,18 +120,20 @@ T_min = min(T_uncorrelated)
 T_ranges_for_each_num_states = np.array([[[0.,0.] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 distributions_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 free_energies_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
+state_temps_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
+state_energies_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
+free_energies_for_each_num_states = np.array([[[0. for i in range(0,len(U_uncorrelated))] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 weights_for_each_num_states = np.array([[[0. for i in range(0,len(U_uncorrelated))] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
-print(weights_for_each_num_states.shape)
 num_states_index = 0
 figure_index = 1
 for num_states in state_range:
  T_step_size = (T_max - T_min) / num_states
- print("The maximum and minimum sampled temperatures were: "+str(T_max)+" and "+str(T_min)+", respectively.")
- print("Distributing samples into "+str(num_states)+" thermodynamic 'states', which are defined using ")
- print("temperature windows of "+str(T_step_size)+" K.")
+# print("The maximum and minimum sampled temperatures were: "+str(T_max)+" and "+str(T_min)+", respectively.")
+ print("Analyzing data with "+str(num_states)+" 'states' defined by T ranges of "+str(T_step_size)+" K.")
  state_ranges = np.array([[T_min+(i*T_step_size),T_min+((i+1)*T_step_size)] for i in range(0,num_states)])
  state_index = 0
  T_state_center= np.array([0.0 for i in range(0,num_states)])
+ state_energies = np.array([0.0 for i in range(0,num_states)])
  for state in range(0,num_states):
   T_state_center[state] = sum(state_ranges[state])/2.0
   state_counts = np.array([0 for i in range(0,num_states)])
@@ -154,18 +148,10 @@ for num_states in state_range:
     state_counts[state_index] = state_counts[state_index] + 1
     exit
    state_index = state_index + 1
- print("The distribution with "+str(num_states)+" states is: "+str(state_counts))
- figure = pyplot.figure(figure_index)
-# Plot the state distributions
- x_data = T_state_center[:]
- y_data = state_counts[:]
- pyplot.plot(x_data,y_data,figure = figure)
- pyplot.xlabel("Temperature (Kelvin)")
- pyplot.ylabel("Counts")
- pyplot.savefig(str(str(cwd())+str("/distribution_for_")+str(num_states)+str("_states.png")))
- figure_index = figure_index + 1
+# print("The distribution with "+str(num_states)+" states is: "+str(state_counts))
  for state in range(0,num_states):
   distributions_for_each_num_states[num_states_index][state] = state_counts[state]
+  state_temps_for_each_num_states[num_states_index][state] = sum(state_ranges[state])/2
  T_ranges_for_each_num_states[num_states_index][state] = state_ranges[state]
 # Run MBAR to calculate weights for each state
  mbar = MBAR(u_kn, state_counts, verbose=False, relative_tolerance=1e-12)
@@ -177,35 +163,70 @@ for num_states in state_range:
 
 #############
 #
-# 5) Calculate free energy surface with MBAR using Langevin dynamics simulation data
+# 5) Calculate dimensionless free energies with MBAR
 #
 #############
 
 # Get the dimensionless free energy differences
-# free_energies_for_each_num_states[num_states_index] = np.array([mbar.getFreeEnergyDifferences()])
- print(np.array([mbar.getFreeEnergyDifferences()]).shape)
- print(free_energies_for_each_num_states[num_states_index].shape)
+ free_energies,uncertainty_free_energies = mbar.getFreeEnergyDifferences()[0],mbar.getFreeEnergyDifferences()[1]
+# print("With "+str(num_states)+" states the free energies are:")
+ for sample in range(0,len(free_energies)):
+  for state in range(0,num_states):
+   free_energies_for_each_num_states[num_states_index][sample][state] = free_energies[sample][state]
+   state_temps_for_each_num_states[num_states_index][state] = T_state_center[state]
+   state_energies[state] = state_energies[state] + free_energies[sample][state]
+
+ for state in range(0,num_states):
+  state_energies_for_each_num_states[num_states_index][state] = state_energies[state]/len(free_energies)
+
 #
-#############
-#
-# 6) Calculate PMF with MBAR using Langevin dynamics simulation data
-#
-#############
+
+# figure = pyplot.figure(figure_index)
+# x_data = T_state_center[:]
+# y_data = state_energies[:] 
+# pyplot.plot(x_data,y_data,figure = figure)
+# pyplot.xlabel("Temperature (Kelvin)")
+# pyplot.ylabel("Dimensionless free energy")
+# pyplot.savefig(str(output_dir+"/free_energies_for_"+str(num_states)+"_states.png"))
+# pyplot.close()
+# figure_index = figure_index + 1 
 
 #############
 #
-# 7) Calculate PMF with MBAR after umbrella sampling of Langevin dynamics simulation data
-#
-#############
-
-#############
-#
-# 8) Calculate PMF with WHAM after umbrella sampling of Langevin dynamics simulation data# 6) Calculate PMF with MBAR using Langevin dynamics simulation data
+# END ITERATION OVER EACH NUMBER OF STATES
 #
 #############
 
  num_states_index = num_states_index + 1
 
+#############
+#
+# 6) Plot the results
+#
+#############
 
+# Plot distribution functions versus the state Temps.
+y_data = [distribution for distribution in distributions_for_each_num_states]
+x_data = [Temp for Temp in state_temps_for_each_num_states]
+figure = pyplot.figure(figure_index)
+pyplot.plot(x_data,y_data,figure = figure)
+pyplot.xlabel("Temperature (Kelvin)")
+pyplot.ylabel("Counts")
+pyplot.legend([num_states*5 for num_states in range(1,21)],title="# States",fontsize=6)
+pyplot.savefig(str(output_dir+str("/distributions_v_temp.png")))
+pyplot.close()
+figure_index = figure_index + 1
+
+# Plot the average dimensionless free energy for each state versus the Temps.
+figure = pyplot.figure(figure_index)
+x_data = [Temp for Temp in state_temps_for_each_num_states]
+y_data = [energies for energies in state_energies_for_each_num_states] 
+pyplot.plot(x_data,y_data,figure = figure)
+pyplot.xlabel("Temperature (Kelvin)")
+pyplot.ylabel("Dimensionless free energy")
+pyplot.legend([num_states*5 for num_states in range(1,21)],title="# States",fontsize=6)
+pyplot.savefig(str(output_dir+"/free_energies_v_temp.png"))
+pyplot.close()
+figure_index = figure_index + 1
 
 exit() 
