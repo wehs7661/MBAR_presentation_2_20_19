@@ -3,7 +3,7 @@
 
 # The protocol is broken up into the following sections:
 
-# 1) Provide user input
+# 1) Run-time options
 # 2) Prepare and run OpenMM simulation(s)
 # 3) Sub-sample simulation data to identify uncorrelated samples
 # 4) Calculate 'weights' for each thermodynamic state with MBAR
@@ -18,14 +18,15 @@ import numpy as np
 import mdtraj as md
 import matplotlib.pyplot as pyplot
 import math
+import util
 from openmmtools.testsystems import SodiumChlorideCrystal
 from pymbar import MBAR, timeseries
 
-print("Running the free energy protocol for sodium chloride...")
+print("Running the MBAR free energy protocol for sodium chloride...")
 
 #############
 #
-# 1) Provide user input
+# 1) Run-time options
 #
 #############
 
@@ -87,24 +88,7 @@ if not(analysis_data_exists):
  T_all_temp = np.array([l.split(',')[4] for l in output_obj.readlines()])
  output_obj.close()
 # Read in the distances
- distances = np.array([0. for distance in range(0,simulation_steps)])
- output_obj = open(str(output_dir+"output.pdb"),'r')
- step = 0
- Na_coord = []
- Cl_coord = []
- for line in output_obj.readlines():
-   if line.split(' ')[0] == "HETATM":
-    if line.split(' ')[5] == "Na+":
-     Na_coord = np.array([float(line.split(' ')[18]),float(line.split(' ')[21]),float(line.split(' ')[24])])
-    if line.split(' ')[5] == "Cl-":
-     Cl_coord = np.array([float(line.split(' ')[18]),float(line.split(' ')[21]),float(line.split(' ')[24])])
-
-   if Na_coord != [] and Cl_coord != []: 
-    distances[step] = (sum([(Na_coord[index]-Cl_coord[index])**2 for index in range(0,3)]))**(1/2)
-    Na_coord = []
-    Cl_coord = []
-    step = step + 1
- output_obj.close()
+ distances = util.get_distances(str(output_dir+"output.pdb"),simulation_steps)
  E_total_all = np.array(np.delete(E_total_all_temp,0,0),dtype=float)
  T_all = np.array(np.delete(T_all_temp,0,0),dtype=float)
  [t0, g, Neff_max] = timeseries.detectEquilibration(E_total_all,nskip=nskip)
@@ -145,6 +129,7 @@ U_reduced = np.array([U_uncorrelated[index]/(T_uncorrelated[index]*kB) for index
 # Bin widths are calculated as: ( T_max - T_min ) / 
 T_max = max(T_uncorrelated)
 T_min = min(T_uncorrelated)
+# Define arrays that will store our data
 T_ranges_for_each_num_states = np.array([[[0.,0.] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 distributions_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 free_energies_for_each_num_states = np.array([[0. for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
@@ -155,7 +140,15 @@ free_energies_for_each_num_states = np.array([[[0. for i in range(0,len(U_uncorr
 weights_for_each_num_states = np.array([[[0. for i in range(0,len(U_uncorrelated))] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 num_states_index = 0
 figure_index = 1
+
+#############
+#
+# Begin iteration over different number of 'states' used (to define normalization constants in MBAR).
+#
+#############
+
 for num_states in state_range:
+# Assign temperature windows by identifying the full temperature range of the samples and dividing by the number of states.
  T_step_size = (T_max - T_min) / num_states
 # print("The maximum and minimum sampled temperatures were: "+str(T_max)+" and "+str(T_min)+", respectively.")
  print("Analyzing data with "+str(num_states)+" 'states' defined by T ranges of "+str(T_step_size)+" K.")
@@ -163,10 +156,14 @@ for num_states in state_range:
  state_index = 0
  T_state_center= np.array([0.0 for i in range(0,num_states)])
  state_energies = np.array([0.0 for i in range(0,num_states)])
+# Determine the center of the temperature window 
  for state in range(0,num_states):
   T_state_center[state] = sum(state_ranges[state])/2.0
-  state_counts = np.array([0 for i in range(0,num_states)])
+# Create an array to store the number of counts in each temperature window
+ state_counts = np.array([0 for i in range(0,num_states)])
+# Define u_kn (ESSENTIAL array for MBAR!!)
  u_kn = np.array([[U_uncorrelated[index]/T_state_center[state] for index in range(0,len(U_uncorrelated))] for state in range(0,num_states)])
+# Assign each of the samples to a thermodynamic state
  for T in T_uncorrelated:
   state_index = 0
   for state in state_ranges:
@@ -178,13 +175,16 @@ for num_states in state_range:
     exit
    state_index = state_index + 1
 # print("The distribution with "+str(num_states)+" states is: "+str(state_counts))
+# Store the distribution data for this number of states so that we can plot comparisons later
  for state in range(0,num_states):
   distributions_for_each_num_states[num_states_index][state] = state_counts[state]
   state_temps_for_each_num_states[num_states_index][state] = sum(state_ranges[state])/2
  T_ranges_for_each_num_states[num_states_index][state] = state_ranges[state]
-# Run MBAR to calculate weights for each state
+# Initialize MBAR
  mbar = MBAR(u_kn, state_counts, verbose=False, relative_tolerance=1e-12)
+# Get the 'weights', or reweighted mixture distribution
  weights = mbar.getWeights()
+# Store the weights for plot comparisons later on
  for sample in range(0,len(weights)):
   for state in range(0,num_states):
 #   print(weights_for_each_num_states[num_states_index][state][sample])
@@ -199,27 +199,17 @@ for num_states in state_range:
 # Get the dimensionless free energy differences
  free_energies,uncertainty_free_energies = mbar.getFreeEnergyDifferences()[0],mbar.getFreeEnergyDifferences()[1]
 # print("With "+str(num_states)+" states the free energies are:")
+# Save the free energies for this number of states for comparison plots later on
  for sample in range(0,len(free_energies)):
   for state in range(0,num_states):
    free_energies_for_each_num_states[num_states_index][sample][state] = free_energies[sample][state]
-   free_energies_for_each_num_states[num_states_index][sample][state] = free_energies[sample][state]
    state_temps_for_each_num_states[num_states_index][state] = T_state_center[state]
    state_energies[state] = state_energies[state] + free_energies[sample][state]
-
+# Calculate the averate total energy for the samples within each state (temperature window)
  for state in range(0,num_states):
   state_energies_for_each_num_states[num_states_index][state] = state_energies[state]/len(free_energies)
 
 #
-
-# figure = pyplot.figure(figure_index)
-# x_data = T_state_center[:]
-# y_data = state_energies[:] 
-# pyplot.plot(x_data,y_data,figure = figure)
-# pyplot.xlabel("Temperature (Kelvin)")
-# pyplot.ylabel("Dimensionless free energy")
-# pyplot.savefig(str(output_dir+"/free_energies_for_"+str(num_states)+"_states.png"))
-# pyplot.close()
-# figure_index = figure_index + 1 
 
 #############
 #
@@ -235,7 +225,7 @@ for num_states in state_range:
 #
 #############
 
-# Plot distribution functions versus the state Temps.
+# Plot distribution functions versus Temp.
 y_data = [distribution for distribution in distributions_for_each_num_states]
 x_data = [Temp for Temp in state_temps_for_each_num_states]
 figure = pyplot.figure(figure_index)
@@ -247,15 +237,15 @@ pyplot.savefig(str(output_dir+str("/distributions_v_temp.png")))
 pyplot.close()
 figure_index = figure_index + 1
 
-# Plot the average dimensionless free energy for each state versus the Temps.
+# Plot the average dimensionless free energy for each state versus Temp.
 figure = pyplot.figure(figure_index)
 x_data = [Temp for Temp in state_temps_for_each_num_states]
 y_data = [energies for energies in state_energies_for_each_num_states] 
 pyplot.plot(x_data,y_data,figure = figure)
 pyplot.xlabel("Temperature (Kelvin)")
-pyplot.ylabel("Dimensionless free energy")
+pyplot.ylabel("Dimensionless free energy differences")
 pyplot.legend([num_states*5 for num_states in range(1,21)],title="# States",fontsize=6)
-pyplot.savefig(str(output_dir+"/free_energies_v_temp.png"))
+pyplot.savefig(str(output_dir+"/free_energy_differences_v_temp.png"))
 pyplot.close()
 figure_index = figure_index + 1
 
