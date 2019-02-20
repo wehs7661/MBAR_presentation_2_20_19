@@ -20,6 +20,8 @@ from sys import stdout
 from os import getcwd as cwd
 import numpy as np
 import mdtraj as md
+import matplotlib.pyplot as pyplot
+import math
 from openmmtools.testsystems import SodiumChlorideCrystal
 from pymbar import MBAR, timeseries
 
@@ -104,6 +106,7 @@ else:
  print("Reading existing simulation output from: "+output_file_name)
  uncorrelated_energies_obj = open(str(output_dir+'uncorrelated_total_energies.dat'),'r')
  U_uncorrelated = np.array([float(l) for l in uncorrelated_energies_obj.readlines()])
+ print("Found "+str(len(U_uncorrelated))+" uncorrelated samples.")
  uncorrelated_energies_obj.close()
  uncorrelated_temperatures_obj = open(str(output_dir+'uncorrelated_temperatures.dat'),'r')
  T_uncorrelated = np.array([float(l) for l in uncorrelated_temperatures_obj.readlines()])
@@ -128,12 +131,12 @@ free_energies_for_each_num_states = np.array([[0. for i in range(0,state_range[l
 weights_for_each_num_states = np.array([[[0. for i in range(0,len(U_uncorrelated))] for i in range(0,state_range[len(state_range)-1])] for i in range(0,len(state_range))])
 print(weights_for_each_num_states.shape)
 num_states_index = 0
+figure_index = 1
 for num_states in state_range:
  T_step_size = (T_max - T_min) / num_states
  print("The maximum and minimum sampled temperatures were: "+str(T_max)+" and "+str(T_min)+", respectively.")
- print("Binning the samples into "+str(num_states)+" thermodynamic states using ")
+ print("Distributing samples into "+str(num_states)+" thermodynamic 'states', which are defined using ")
  print("temperature windows of "+str(T_step_size)+" K.")
- print("Found "+str(len(U_uncorrelated))+" uncorrelated samples.")
  state_ranges = np.array([[T_min+(i*T_step_size),T_min+((i+1)*T_step_size)] for i in range(0,num_states)])
  state_index = 0
  T_state_center= np.array([0.0 for i in range(0,num_states)])
@@ -151,7 +154,16 @@ for num_states in state_range:
     state_counts[state_index] = state_counts[state_index] + 1
     exit
    state_index = state_index + 1
- print("The distribution with "+str(num_states)+" states is:"+str(state_counts))
+ print("The distribution with "+str(num_states)+" states is: "+str(state_counts))
+ figure = pyplot.figure(figure_index)
+# Plot the state distributions
+ x_data = T_state_center[:]
+ y_data = state_counts[:]
+ pyplot.plot(x_data,y_data,figure = figure)
+ pyplot.xlabel("Temperature (Kelvin)")
+ pyplot.ylabel("Counts")
+ pyplot.savefig(str(cwd+str("distribution_for_")+str(num_states)+str("_states.dat")))
+ figure_index = figure_index + 1
  for state in range(0,num_states):
   distributions_for_each_num_states[num_states_index][state] = state_counts[state]
  T_ranges_for_each_num_states[num_states_index][state] = state_ranges[state]
@@ -169,10 +181,10 @@ for num_states in state_range:
 #
 #############
 
-# Get the dimensionless free energy differences for all states
-# free_energies_for_each_num_states[num_states_index] = mbar.getFreeEnergyDifferences()
- print(mbar.getFreeEnergyDifferences())
- print(free_energies_for_each_num_states[num_states_index])
+# Get the dimensionless free energy differences
+# free_energies_for_each_num_states[num_states_index] = np.array([mbar.getFreeEnergyDifferences()])
+ print(np.array([mbar.getFreeEnergyDifferences()]).shape)
+ print(free_energies_for_each_num_states[num_states_index].shape)
 #
 #############
 #
