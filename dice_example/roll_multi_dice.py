@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
    # Samples for a fair dice
 
-   N_samples = 100000
+   N_samples = 300000
    k_sims = 2
    n_dice = 10
    bins = dict()
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
       # KDE of data
 
-      bw = 0.1
+      bw = 0.2
       density = sps.gaussian_kde(list(map(sum, samples)), bw_method=bw)
       density_MBAR = sps.gaussian_kde(list(map(sum, samples)), weights=results.getWeights()[ :, 1],bw_method=bw)
       density_loaded = sps.gaussian_kde(list(map(sum, samples_loaded)), bw_method=bw)
@@ -120,12 +120,12 @@ if __name__ == "__main__":
       x_range = np.linspace(1*n_dice, 6*n_dice, 200)
 
       plt.figure(figsize=[10,10])
-      plt.plot(x_range, density(x_range))
-      plt.plot(x_range, density_loaded(x_range))
-      plt.plot(x_range, density_MBAR(x_range))
+      plt.plot(x_range, density(x_range),'k')
+      # plt.plot(x_range, density_loaded(x_range))
+      # plt.plot(x_range, density_MBAR(x_range))
       #plt.hist(list(map(sum, samples)), bins=range(1,6*n_dice+1), alpha = 0.4, density=True)
-      #plt.hist(list(map(sum, samples_loaded)), bins=range(1,6*n_dice+1), alpha = 0.4, density=True, color='k')
-      #plt.hist(list(map(sum, samples)), weights=results.getWeights()[:,1], bins=range(1,6*n_dice+1), alpha=0.4, density=True)
+      plt.hist(list(map(sum, samples_loaded)), bins=range(1,6*n_dice+1), alpha = 0.4, density=True)
+      plt.hist(list(map(sum, samples)), weights=results.getWeights()[:,1], bins=range(1,6*n_dice+1), alpha=0.4, density=True)
       plt.legend(['Fair Dice', 'Loaded Dice', 'MBAR Weighted Dice'])
       plt.xlim([10,60])
       plt.xlabel('Dice Value', fontsize=20)
@@ -135,10 +135,24 @@ if __name__ == "__main__":
       plt.show()
 
       # Scatter of weights
-      plt.figure(figsize=[10,10])
-      plt.scatter(sums, results.getWeights()[:,1])
-      plt.xlabel('Dice Value', fontsize=20)
-      plt.ylabel('Weight Value', fontsize=20)
+      
+      fig, ax1 = plt.subplots(figsize=(10,15))
+
+      color = 'black'
+      ax1.plot(x_range, density(x_range), color=color)
+      ax1.set_xlabel('Dice Value', fontsize=20)
+      ax1.set_ylabel('Mixture Distribution', fontsize=20, color=color)
+      ax1.tick_params(axis='y', labelcolor=color)
+      ax1.set_ylim([0, max(density(x_range))+np.std(density(x_range))])
+      ax2 = ax1.twinx()
+
+      color = 'C0'
+      ax2.scatter(sums, results.getWeights()[:,1])
+      ax2.set_ylabel('Weight Values', fontsize=20, color=color)
+      ax2.tick_params(axis='y', labelcolor=color)
+      ax2.set_ylim([min(results.getWeights()[:,1]), max(results.getWeights()[:,1]) + 10*np.std(results.getWeights()[:,1])])
+      fig.tight_layout()
+      ax1.autoscale(enable = True, axis='x', tight=True)
       plt.gca()
       plt.savefig('outputs/10_weighted_dice_weights.png')
       plt.show()
