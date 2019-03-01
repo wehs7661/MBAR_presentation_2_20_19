@@ -8,6 +8,8 @@ This repository contains the data required and results of umbrella sampling of N
 
 `pullx-umbrella.xvg`: There are 47 .xvg files which contain the data (the value of reaction coordinate as a functino of time) extracted from 47 independent simulations along the reaction coordinate.  
 
+`NaCl_analysis_MBAR_GAM_comments.py`: This is the older version of MBAR code with Garrett's comments. There is not section for bootstrapping in the code.
+
 `NaCl_analysis_MBAR_bootstrapping.py`: This is the python code for MBAR analysis. PMF data can be obtained by simply running the file and all the figures will be save automatically, including `Bootstrapping_MBAR_var.png` and `PMF_MBAR.png`. The section of bootstrapping starts from line 168 and can be turned on or off in line 22. (The number of bootstrap samples can be defined in lie 23.)
 
 `PMF_MBAR.png`: This figure was generated from `NaCl_analysis_MBAR_bootstrapping.py` with 200 bins used for plotting.  
